@@ -40,7 +40,21 @@ def get_values(url, is_old):
 			content = int(tags[4].replace("?ln=fr", "").replace("?ln=en", "").replace("?ln=de", ""))
 			contents.append(content)
 	return contents
-	
+
+
+def get_line(result):
+	line = str(result['legacy'])
+	line += "," + str(result['nb_contents_old'])
+	line += "," + str(result['nb_contents_new'])
+	line += "," + str(result['nb_set_old'])
+	line += "," + str(result['nb_set_new'])
+	line += "," + str(result['intersect'])
+	line += "," + str(result['diff_old_new'])
+	line += "," + str(result['diff_new_old'])
+	line += "," + result['updated']
+	line += "," + result['parameters']
+	line += "," + result['new_url_in']
+	return line
 
 
 
@@ -98,6 +112,14 @@ for counter, url in enumerate(urls):
 	results.append(result)
 
 
+results_ok = []
+results_nok = []
+for result in results:
+	if result['intersect'] == result['nb_set_old'] and result['diff_new_old'] == int(result['updated']):
+		results_ok.append(result)
+	else:
+		results_nok.append(result)
+
 
 file_results = open('results/quality_metrics_results.csv', 'w')
 
@@ -106,48 +128,24 @@ file_results.write('legacy_id,number_contents_old,number_contents_new,number_set
 file_results.write('=========================\n')
 file_results.write('SEEMS OK\n')
 
-for result in results:
-	if result['intersect'] == result['nb_set_old']:
-		line = str(result['legacy'])
-		line += "," + str(result['nb_contents_old'])
-		line += "," + str(result['nb_contents_new'])
-		line += "," + str(result['nb_set_old'])
-		line += "," + str(result['nb_set_new'])
-		line += "," + str(result['intersect'])
-		line += "," + str(result['diff_old_new'])
-		line += "," + str(result['diff_new_old'])
-		line += "," + result['updated']
-		line += "," + result['parameters']
-		line += "," + result['new_url_in']
-		file_results.write(line + '\n')
+for result in results_ok:
+	line = get_line(result)
+	file_results.write(line + '\n')
 
 file_results.write('\n')
 file_results.write('=========================\n')
 file_results.write('PROBLEMS\n')
 
-for result in results:
-	if result['intersect'] != result['nb_set_old']:
-		line = str(result['legacy'])
-		line += "," + str(result['nb_contents_old'])
-		line += "," + str(result['nb_contents_new'])
-		line += "," + str(result['nb_set_old'])
-		line += "," + str(result['nb_set_new'])
-		line += "," + str(result['intersect'])
-		line += "," + str(result['diff_old_new'])
-		line += "," + str(result['diff_new_old'])
-		line += "," + result['updated']
-		line += "," + result['parameters']
-		line += "," + result['new_url_in']
-		file_results.write(line + '\n')
-
+for result in results_nok:
+	line = get_line(result)
+	file_results.write(line + '\n')
 	
 file_results.close()
 
 
 file_seems_to_be_ok_to_migrate = open('results/ids_to_migrate.txt', 'w')
 
-for result in results:
-	if result['intersect'] == result['nb_set_old'] and result['diff_new_old'] == int(result['updated']):
-		file_seems_to_be_ok_to_migrate.write(str(result['legacy']) + '\n')
+for result in results_ok:
+	file_seems_to_be_ok_to_migrate.write(str(result['legacy']) + '\n')
 
 file_seems_to_be_ok_to_migrate.close()
