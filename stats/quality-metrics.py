@@ -73,7 +73,7 @@ for counter, url in enumerate(urls):
 	result = {}
 	result['legacy'] = url['legacy']
 	result['new_url_in'] = url['new_url_in']
-	result['legacy'] = url['legacy']
+	result['parameters'] = url['parameters']
 	result['nb_titles_old'] = len(title_old)
 	result['nb_titles_new'] = len(title_new)
 	result['nb_set_old'] = len(set_old)
