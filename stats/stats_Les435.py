@@ -37,7 +37,7 @@ file_legacy.close()
 
 
 
-file_index_migrated = open('data/ids_to_migrate.txt', 'r')
+file_index_migrated = open('results/ids_to_migrate.txt', 'r')
 migrated = []
 for line in file_index_migrated: 
 	migrated.append(int(line))
@@ -121,7 +121,7 @@ for id_ in ids:
 
 
 
-file_results = open('stats_Les435_results.csv', 'w')
+file_results = open('results/stats_Les435_results.csv', 'w')
 file_results.write("id,group,is_migrated\n")
 for record in records:
 	file_results.write(str(record['id']) + "," + str(record['group']) + "," + str(record['is_migrated']) + "\n")

@@ -157,7 +157,7 @@ for id_ in ids:
 					filters[filter_] = 1
 
 
-file_results = open('stats_results.txt', 'w')
+file_results = open('results/group_counter_results.txt', 'w')
 
 file_results.write("=================\n")
 file_results.write("PEOPLE :\n")

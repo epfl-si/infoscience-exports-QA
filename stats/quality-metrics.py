@@ -2,7 +2,8 @@
 
 import requests
 import collections
-import urllib 
+import urllib
+import csv
 from bs4 import BeautifulSoup
 
 
@@ -10,41 +11,50 @@ def get_values(url, is_old):
 	page = urllib.urlopen(url)
 	strpage = page.read().decode('utf-8')
 	soup = BeautifulSoup(strpage, "html.parser")
-	records = soup.find_all("div", "infoscience_record")
+	records = soup.find_all("a", "infoscience_link_detailed")
 	contents = []
-	for record in records:
+	if not records:
 		if is_old:
-			tag = record.find("span", "infoscience_title")
-			if tag:
-				content = tag.text.strip()
-			else:
-				content = record.find("h3", "infoscience_title").text.strip()
+			records = soup.find_all("div", "readable_link")
+			for record in records:
+				texts = record.text.strip()
+				if "Detailed record" in texts or u"Notice détaillée" in texts:
+					texts = texts.split()
+					for text in texts:
+						if "http" in text:
+							tags = text.split('/')
+							content = int(tags[4].replace("?ln=fr", "").replace("?ln=en", "").replace("?ln=de", ""))
+							contents.append(content)
 		else:
-			tag = record.find("span", "infoscience_my_title")
-			if tag:
-				content = tag.text.strip()
-			else:
-				content = record.find("h3", "infoscience_title").text.strip()
-		content = content.strip('. ')
-		contents.append(content)
+			records = soup.find_all("p", "infoscience_links")
+			for record in records:
+				texts = record.text.strip().split()
+				for text in texts:
+					if "idevelopsrv25" in text:
+						tags = text.split('/')
+						content = int(tags[4].replace("?ln=fr", "").replace("?ln=en", "").replace("?ln=de", ""))
+						contents.append(content)
+	else:
+		for record in records:
+			tags = record['href'].split('/')
+			content = int(tags[4].replace("?ln=fr", "").replace("?ln=en", "").replace("?ln=de", ""))
+			contents.append(content)
 	return contents
 	
 
-file_urls = open('data/infoscience_exports_all_new_url.csv', 'r') 
-data = file_urls.readlines()[1:]
 
+
+reader = csv.DictReader(open('data/infoscience_exports_all_new_url.csv', 'r'))
 urls = []
-for line in data: 
-	values = line.split(',')
+for row in reader:
 	url = {}
-	url['legacy'] = values[0]
-	url['old'] = values[1]
-	url['new'] = values[2]
-	url['parameters'] = values[3]
-	url['new_url_in'] = values[4]
+	url['legacy'] = row['legacy_id']
+	url['old'] = row['old_url']
+	url['new'] = row['new_url']
+	url['parameters'] = row['old_key']
+	url['new_url_in'] = row['generated_url']
 	urls.append(url)
 
-file_urls.close()
 
 
 file_updated = open('data/need_update_2018.04.25.csv', 'r') 
@@ -65,17 +75,17 @@ file_updated.close()
 results = []
 for counter, url in enumerate(urls):
 	print(counter+1)
-	title_old = get_values(url['old'], True)
-	title_new = get_values(url['new'], False)
-	#print [item for item, count in collections.Counter(title_old).items() if count > 1]
-	set_old = set(title_old)
-	set_new = set(title_new)
+	contents_old = get_values(url['old'], True)
+	contents_new = get_values(url['new'], False)
+	#print [item for item, count in collections.Counter(contents_old).items() if count > 1]
+	set_old = set(contents_old)
+	set_new = set(contents_new)
 	result = {}
 	result['legacy'] = url['legacy']
 	result['new_url_in'] = url['new_url_in']
 	result['parameters'] = url['parameters']
-	result['nb_titles_old'] = len(title_old)
-	result['nb_titles_new'] = len(title_new)
+	result['nb_contents_old'] = len(contents_old)
+	result['nb_contents_new'] = len(contents_new)
 	result['nb_set_old'] = len(set_old)
 	result['nb_set_new'] = len(set_new)
 	result['intersect'] = len(set_old.intersection(set_new))
@@ -89,9 +99,9 @@ for counter, url in enumerate(urls):
 
 
 
-file_results = open('results.csv', 'w')
+file_results = open('results/quality_metrics_results.csv', 'w')
 
-file_results.write('legacy_id,number_titles_old,number_titles_new,number_set_old,number_set_new,intersect,old-new,new-old,updated,old_key,generated_url' + '\n') 
+file_results.write('legacy_id,number_contents_old,number_contents_new,number_set_old,number_set_new,intersect,old-new,new-old,updated,old_key,generated_url' + '\n') 
 
 file_results.write('=========================\n')
 file_results.write('SEEMS OK\n')
@@ -99,8 +109,8 @@ file_results.write('SEEMS OK\n')
 for result in results:
 	if result['intersect'] == result['nb_set_old']:
 		line = str(result['legacy'])
-		line += "," + str(result['nb_titles_old'])
-		line += "," + str(result['nb_titles_new'])
+		line += "," + str(result['nb_contents_old'])
+		line += "," + str(result['nb_contents_new'])
 		line += "," + str(result['nb_set_old'])
 		line += "," + str(result['nb_set_new'])
 		line += "," + str(result['intersect'])
@@ -118,8 +128,8 @@ file_results.write('PROBLEMS\n')
 for result in results:
 	if result['intersect'] != result['nb_set_old']:
 		line = str(result['legacy'])
-		line += "," + str(result['nb_titles_old'])
-		line += "," + str(result['nb_titles_new'])
+		line += "," + str(result['nb_contents_old'])
+		line += "," + str(result['nb_contents_new'])
 		line += "," + str(result['nb_set_old'])
 		line += "," + str(result['nb_set_new'])
 		line += "," + str(result['intersect'])
@@ -132,3 +142,12 @@ for result in results:
 
 	
 file_results.close()
+
+
+file_seems_to_be_ok_to_migrate = open('results/ids_to_migrate.txt', 'w')
+
+for result in results:
+	if result['intersect'] == result['nb_set_old'] and result['diff_new_old'] == int(result['updated']):
+		file_seems_to_be_ok_to_migrate.write(str(result['legacy']) + '\n')
+
+file_seems_to_be_ok_to_migrate.close()
