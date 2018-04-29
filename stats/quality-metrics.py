@@ -6,12 +6,22 @@ import collections
 import urllib
 import csv
 from bs4 import BeautifulSoup
+import hashlib
+from fcache.cache import FileCache
 
 context = ssl._create_unverified_context()
 
-def get_values(url, is_old):
-	page = urllib.urlopen(url, context=context)
-	strpage = page.read().decode('utf-8')
+mycache = FileCache('infoscience_urlopen', flag='cs', app_cache_dir='.')
+
+def get_values(url, is_old, can_cache):
+	cache_name = hashlib.sha1(url).hexdigest()
+	if can_cache and mycache.get(cache_name):
+		strpage = mycache[cache_name]
+	else:
+		page = urllib.urlopen(url, context=context)
+		strpage = page.read().decode('utf-8')
+		if can_cache:
+			mycache[cache_name] = strpage
 	soup = BeautifulSoup(strpage, "html.parser")
 	records = soup.find_all("a", "infoscience_link_detailed")
 	contents = []
@@ -91,8 +101,8 @@ file_updated.close()
 results = []
 for counter, url in enumerate(urls):
 	print(counter+1)
-	contents_old = get_values(url['old'], True)
-	contents_new = get_values(url['new'], False)
+	contents_old = get_values(url['old'], True, True)
+	contents_new = get_values(url['new'], False, False)
 	#print [item for item, count in collections.Counter(contents_old).items() if count > 1]
 	set_old = set(contents_old)
 	set_new = set(contents_new)
