@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import ssl
 import requests
 import collections
 import urllib
 import csv
 from bs4 import BeautifulSoup
 
+context = ssl._create_unverified_context()
 
 def get_values(url, is_old):
-	page = urllib.urlopen(url)
+	page = urllib.urlopen(url, context=context)
 	strpage = page.read().decode('utf-8')
 	soup = BeautifulSoup(strpage, "html.parser")
 	records = soup.find_all("a", "infoscience_link_detailed")
@@ -44,6 +46,8 @@ def get_values(url, is_old):
 
 def get_line(result):
 	line = str(result['legacy'])
+	line += "," + str(result['nb_contents_old'])
+	line += "," + str(result['nb_contents_new'])
 	line += "," + str(result['nb_set_old'])
 	line += "," + str(result['nb_set_new'])
 	line += "," + str(result['intersect'])
@@ -96,6 +100,8 @@ for counter, url in enumerate(urls):
 	result['legacy'] = url['legacy']
 	result['new_url_in'] = url['new_url_in']
 	result['parameters'] = url['parameters']
+	result['nb_contents_old'] = len(contents_old)
+	result['nb_contents_new'] = len(contents_new)
 	result['nb_set_old'] = len(set_old)
 	result['nb_set_new'] = len(set_new)
 	result['intersect'] = len(set_old.intersection(set_new))
@@ -119,7 +125,7 @@ for result in results:
 
 file_results = open('results/quality_metrics_results.csv', 'w')
 
-file_results.write('legacy_id,number_set_old,number_set_new,intersect,old-new,new-old,updated,old_key,generated_url' + '\n') 
+file_results.write('legacy_id,number_contents_old,number_contents_new,number_set_old,number_set_new,intersect,old-new,new-old,updated,old_key,generated_url' + '\n') 
 
 file_results.write('=========================\n')
 file_results.write('SEEMS OK\n')
