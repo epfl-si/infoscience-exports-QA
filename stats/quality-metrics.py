@@ -49,7 +49,7 @@ def get_line(result):
 	line += "," + str(result['intersect'])
 	line += "," + str(result['diff_old_new'])
 	line += "," + str(result['diff_new_old'])
-	line += "," + result['updated']
+	line += "," + str(result['updated'])
 	line += "," + result['parameters']
 	line += "," + result['new_url_in']
 	return line
@@ -69,18 +69,13 @@ for row in reader:
 
 
 
-file_updated = open('data/need_update_2018.04.25.csv', 'r') 
-data = file_updated.readlines()[1:]
-
+file_updated = csv.DictReader(open('data/need_update_2018.04.27.csv', 'r'))
 records_added_id = []
 records_added_counter = []
-for line in data: 
-	values = line.split(',')
+for line in file_updated: 
 	record = {}
-	records_added_id.append(int(values[0]))
-	records_added_counter.append(values[4])
-
-file_updated.close()
+	records_added_id.append(int(line['legacy id']))
+	records_added_counter.append(line['number of new elements since migration'])
 
 
 
@@ -101,18 +96,27 @@ for counter, url in enumerate(urls):
 	result['intersect'] = len(set_old.intersection(set_new))
 	result['diff_old_new'] = len(set_old.difference(set_new))
 	result['diff_new_old'] = len(set_new.difference(set_old))
+	#print(str(set_old.difference(set_new)))
+	#print(str(set_new.difference(set_old)))
 	if int(url['legacy']) not in records_added_id:
 		result['updated'] = "--"
 	else:
-		result['updated'] = records_added_counter[records_added_id.index(int(url['legacy']))]
+		result['updated'] = int(records_added_counter[records_added_id.index(int(url['legacy']))])
 	results.append(result)
 
 
 results_ok = []
+results_maybe = []
 results_nok = []
 for result in results:
-	if result['intersect'] == result['nb_set_old'] and result['diff_new_old'] == int(result['updated']):
+	if result['intersect'] == result['nb_set_old'] and result['diff_new_old'] == result['updated']:
 		results_ok.append(result)
+	elif result['intersect'] == result['nb_set_old'] and result['intersect'] == result['nb_set_new']:
+		results_ok.append(result)
+	elif result['intersect'] + result['updated'] == result['nb_set_new']:
+		results_ok.append(result)
+	elif result['intersect'] == result['nb_set_old'] and result['intersect'] >= 10:
+		results_maybe.append(result)
 	else:
 		results_nok.append(result)
 
@@ -122,9 +126,17 @@ file_results = open('results/quality_metrics_results.csv', 'w')
 file_results.write('legacy_id,number_set_old,number_set_new,intersect,old-new,new-old,updated,old_key,generated_url' + '\n') 
 
 file_results.write('=========================\n')
-file_results.write('SEEMS OK\n')
+file_results.write('OK\n')
 
 for result in results_ok:
+	line = get_line(result)
+	file_results.write(line + '\n')
+
+file_results.write('\n')
+file_results.write('=========================\n')
+file_results.write('MAYBE\n')
+
+for result in results_maybe:
 	line = get_line(result)
 	file_results.write(line + '\n')
 
