@@ -79,7 +79,7 @@ for row in reader:
 
 
 
-file_updated = csv.DictReader(open('data/need_update_2018.04.27.csv', 'r'))
+file_updated = csv.DictReader(open('data/need_update_2018.04.30.csv', 'r'))
 records_added_id = []
 records_added_counter = []
 for line in file_updated: 
